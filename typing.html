@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family:'Courier New', Courier, monospace;
+            font-size: 18px;
+            background-color: #f4f4f4;
+            display: flex;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background-color: rgba(172, 220, 239, 0.661);
+            border-radius: 10px;
+            background: linear-gradient(135deg, #dbd3f4 60%, #e275ec 100%);
+            box-shadow: 0 4px 18px rgba(22, 22, 22, 0.13);
+            padding: 20px;
+            margin: auto 50px ;
+        }
+        .timer {
+            font-size: 35px;
+            margin-bottom: 20px;
+        }
+        #reference{
+          margin: 5px;
+        }
+        textarea {
+            width: 95%;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-top: 15px;
+        }
+        .highlight {
+            background-color: rgba(255, 255, 0, 0.86);
+        }
+        .incorrect{
+            background-color:#ea4343;
+        }
+        .none{
+            background-color: none;
+        }
+        </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timer"  id="timer">1:00</div>
+        <div id="reference"></div>
+<textarea id="text" rows="10" cols="15"></textarea>
+         
+         <p>Words:<span id="wc">0</span></p>
+    </div>
+</body>
+<script>
+let time = document.getElementById("timer");
+let text = document.getElementById("text");
+let wc = document.getElementById("wc");
+let seconds = 60;
+let timer;
+let isTyping = false;
+
+text.addEventListener("focus", function() {
+    if (!isTyping) {
+    isTyping = true;
+    timer = setInterval(function() {
+         seconds--;
+         time.textContent = Math.floor(seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + (seconds % 60);
+
+    if (seconds == 0) {
+    clearInterval(timer);
+    alert("submitted");
+
+    const data = {
+        id: Date.now(), 
+        wordcount: parseInt(wc.textContent, 10),  
+        timestamp: new Date().toISOString(),
+       user: "testuser" 
+    };
+
+    fetch('/submit', {
+        method: 'POST',
+        headers: {  'Content-Type': 'application/json'   },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {   
+       // console.log('Server response:', result);
+        text.value = ""; 
+        wc.textContent = "0"; 
+    })
+    .catch(error => {
+        console.error('Error sending data:', error);
+    });
+   }
+    }, 500);
+  }
+});
+
+const refText = "Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquam nemo saepe in ex magnam nostrum non quod beatae tempore eveniet quas, nam aut perferendis tenetur rerum sunt iusto corrupti laudantium!";
+const refDiv = document.getElementById("reference");
+const refWords = refText.split(/\s+/);
+
+function highlight() {
+    const typedText = text.value;
+    let html = "";
+    for (let i = 0; i < refText.length; i++) {
+        if (i <typedText.length) {
+            if(typedText[i] === refText[i]) {
+            html += `<span class="highlight">${refText[i]}</span>`;
+             } else {
+            html += `<span class="incorrect">${refText[i]}</span>`;
+            }
+        }
+     else{
+            html += refText[i] + '';
+        }
+    }
+    refDiv.innerHTML = html;
+}
+highlight();
+
+
+text.addEventListener("input", function() {
+        let words = text.value.trim().split(/\s+/).filter(function(word) {
+            return word.length > 0;
+        });
+        wc.textContent = words.length;
+        highlight();
+    });
+
+    text.addEventListener("blur", function() {
+        isTyping = false;
+        clearInterval(timer);
+        seconds = 60; 
+        time.textContent = "1:00"; 
+        text.value="";
+        refDiv.textContent = refText; 
+    });
+
+text.addEventListener("keydown", function(event){
+   if( event.key=="refWords"){
+         event.preventDefault();
+         text.value += refText + " "; 
+         wc.textContent = text.value.trim().split(/\s+/).length; 
+         highlight(); 
+   }
+   
+})
+
+</script>
+
+</html>
